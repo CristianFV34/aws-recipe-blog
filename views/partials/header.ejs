@@ -1,0 +1,41 @@
+<header style="display:flex;justify-content:space-between;align-items:center;padding:10px;background:#ff914d;color:white;">
+  <nav>
+    <a href="/" style="margin-right:15px;color:white;text-decoration:none;">Inicio</a>
+    <a href="/destacados" style="margin-right:15px;color:white;text-decoration:none;">Destacados</a>
+    <a href="/comunidad" style="color:white;text-decoration:none;">Comunidad</a>
+  </nav>
+  <div style="position:relative;">
+    <span id="user-icon" style="cursor:pointer;">
+    <% if (currentUser && currentUser.foto) { %>
+        <img src="<%= currentUser.foto %>" width="30px" style="border-radius:50%;">
+    <% } else { %>
+        <img src="/images/user-3296.png" width="30px" style="border-radius:50%;">
+    <% } %>
+    </span>
+    <div id="user-menu" style="display:none;position:absolute;right:0;background:white;color:black;border:1px solid #ccc;padding:10px;min-width:150px;">
+    <% if (!currentUser) { %>
+        <a href="/login">Iniciar sesión</a><br>
+        <a href="/register">Registrarse</a>
+    <% } else { %>
+        <div style="padding:4px 0;">Hola, <strong><%= currentUser.nombre %></strong></div>
+        <a href="/perfil">Ver perfil</a><br>
+        <form action="/logout" method="POST" style="margin:0;">
+        <button type="submit" style="background:none;border:none;padding:6px 0;cursor:pointer;">Cerrar Sesión</button>
+        </form>
+    <% } %>
+    </div>
+  </div>
+</header>
+
+<script>
+document.getElementById('user-icon').addEventListener('click', () => {
+  const menu = document.getElementById('user-menu');
+  menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+});
+// cerrar al click fuera
+document.addEventListener('click', (e) => {
+  const menu = document.getElementById('user-menu');
+  const icon = document.getElementById('user-icon');
+  if (!menu.contains(e.target) && !icon.contains(e.target)) menu.style.display = 'none';
+});
+</script>

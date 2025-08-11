@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Destacados - Blog de Comida</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <%- include("partials/header") %>
+  
+  <main style="padding:20px;">
+    <h1>Recetas Destacadas</h1>
+    <p>Aquí encontrarás las recetas más populares de nuestra comunidad.</p>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:20px;margin-top:20px;">
+      <article style="border:1px solid #ddd;border-radius:10px;overflow:hidden;">
+        <img src="/images/receta1.avif" alt="Receta 1" style="width:100%;height:180px;object-fit:cover;">
+        <div style="padding:10px;">
+          <h3>Paella de Mariscos</h3>
+          <p>Un clásico español con mariscos frescos y azafrán.</p>
+          <button style="margin-top:10px;">Ver receta</button>
+        </div>
+      </article>
+
+      <article style="border:1px solid #ddd;border-radius:10px;overflow:hidden;">
+        <img src="/images/receta2.avif" alt="Receta 2" style="width:100%;height:180px;object-fit:cover;">
+        <div style="padding:10px;">
+          <h3>Tacos al Pastor</h3>
+          <p>Deliciosos tacos mexicanos con piña y carne adobada.</p>
+          <button style="margin-top:10px;">Ver receta</button>
+        </div>
+      </article>
+    </div>
+  </main>
+</body>
+</html>

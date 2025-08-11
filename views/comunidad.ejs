@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Comunidad - Blog de Comida</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <%- include("partials/header") %>
+  
+  <main style="padding:20px;">
+    <h1>👩‍🍳 Comunidad de Cocineros</h1>
+    <p>Comparte tus recetas, comenta y aprende con otros amantes de la cocina.</p>
+
+    <% if (!currentUser) { %>
+      <div style="background:#fff3cd;padding:10px;border:1px solid #ffeeba;border-radius:6px;margin-bottom:20px;">
+        Debes <a href="/login">iniciar sesión</a> para participar en la comunidad.
+      </div>
+    <% } else { %>
+      <form action="/comunidad" method="POST" style="margin-bottom:20px;">
+        <textarea name="mensaje" placeholder="Comparte tu receta o experiencia..." rows="3" style="width:100%;padding:10px;"></textarea><br>
+        <button type="submit" style="margin-top:5px;">Publicar</button>
+      </form>
+    <% } %>
+
+    <section>
+      <article style="border:1px solid #ddd;border-radius:6px;padding:10px;margin-bottom:10px;">
+        <strong>María López</strong> <small>(ayer)</small>
+        <p>¡Hoy hice una pizza casera con masa madre! 😋🍕</p>
+      </article>
+      <article style="border:1px solid #ddd;border-radius:6px;padding:10px;margin-bottom:10px;">
+        <strong>Carlos Pérez</strong> <small>(hace 2 días)</small>
+        <p>Les comparto mi receta de ceviche peruano. ¡Muy fresco!</p>
+      </article>
+    </section>
+  </main>
+</body>
+</html>

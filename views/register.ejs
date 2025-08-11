@@ -1,0 +1,26 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Registrarse</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <%- include ("partials/header") %>
+  <main style="padding:20px;">
+    <h2>Crear cuenta</h2>
+    <% if (errors && errors.length) { %>
+      <ul style="color:red;">
+        <% errors.forEach(e => { %><li><%= e %></li><% }) %>
+      </ul>
+    <% } %>
+    <form action="/register" method="POST">
+      <div><label>Nombre</label><br><input name="nombre" value="<%= form.nombre || '' %>"></div>
+      <div><label>Email</label><br><input name="email" value="<%= form.email || '' %>"></div>
+      <div><label>Contraseña</label><br><input name="password" type="password"></div>
+      <div><label>Repetir contraseña</label><br><input name="password2" type="password"></div>
+      <button type="submit">Registrarse</button>
+    </form>
+  </main>
+</body>
+</html>

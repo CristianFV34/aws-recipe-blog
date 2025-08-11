@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Perfil de <%= user.nombre %></title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <%- include("partials/header") %>
+  <main style="padding:20px;">
+    <h2>Perfil</h2>
+
+    <% if (errors.length) { %>
+      <ul style="color:red;"><% errors.forEach(e => { %><li><%= e %></li><% }) %></ul>
+    <% } %>
+    <% if (success) { %>
+      <div style="color:green;"><%= success %></div>
+    <% } %>
+
+    <div style="display:flex;align-items:center;gap:20px;">
+      <img src="<%= user.foto %>" width="120" style="border-radius:50%;">
+      <form action="/perfil" method="POST" enctype="multipart/form-data">
+        <label>Cambiar foto de perfil:</label><br>
+        <input type="file" name="foto" accept="image/*"><br><br>
+
+        <h3>Cambiar contraseña</h3>
+        <input type="password" name="oldPassword" placeholder="Contraseña actual"><br>
+        <input type="password" name="newPassword" placeholder="Nueva contraseña"><br>
+        <input type="password" name="newPassword2" placeholder="Repetir nueva contraseña"><br><br>
+
+        <button type="submit">Actualizar perfil</button>
+      </form>
+    </div>
+  </main>
+</body>
+</html>

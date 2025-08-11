@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Iniciar sesión</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <%- include ("partials/header") %>
+  <main style="padding:20px;">
+    <h2>Iniciar sesión</h2>
+    <% if (error) { %>
+      <div style="color:red;"><%= error %></div>
+    <% } %>
+    <form action="/login" method="POST">
+      <div><label>Email</label><br><input name="email"></div>
+      <div><label>Contraseña</label><br><input name="password" type="password"></div>
+      <button type="submit">Entrar</button>
+    </form>
+  </main>
+</body>
+</html>
