@@ -70,19 +70,24 @@ app.post('/register', async (req, res) => {
   const params = {
     TableName: 'Usuarios',
     Item: {
-      username,
-      email,
+      username,        
+      email,               
       passwordHash,
-      foto: 'images/user-3296.png' 
-    }
+      foto: 'images/user-3296.png'
+    },
+    ConditionExpression: 'attribute_not_exists(username)'
   };
 
   try {
     await dynamodb.put(params).promise();
     res.send('Usuario registrado con éxito');
   } catch (err) {
-    console.error(err);
-    res.status(500).send('Error al registrar usuario');
+    if (err.code === 'ConditionalCheckFailedException') {
+      res.status(400).send('El nombre de usuario ya existe');
+    } else {
+      console.error(err);
+      res.status(500).send('Error al registrar usuario');
+    }
   }
 });
 
@@ -124,10 +129,10 @@ app.post('/logout', (req, res) => {
 
 app.get('/perfil', ensureAuth, async (req, res) => {
   const getParams = { TableName: 'Usuarios', Key: { username: req.session.user.username } };
+  const { Item: user } = await dynamodb.get(getParams).promise();
   if (!user) {
     return res.render('perfil', { user: null, errors: ['Usuario no encontrado'], success: null });
   }
-  const { Item: user } = await dynamodb.get(getParams).promise();
   res.render('perfil', { user, errors: [], success: null });
 });
 
