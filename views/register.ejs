@@ -15,7 +15,7 @@
       </ul>
     <% } %>
     <form action="/register" method="POST">
-      <div><label>Nombre</label><br><input name="nombre" value="<%= form.nombre || '' %>"></div>
+      <div><label>Nombre</label><br><input name="username" value="<%= form.username || '' %>"></div>
       <div><label>Email</label><br><input name="email" value="<%= form.email || '' %>"></div>
       <div><label>Contraseña</label><br><input name="password" type="password"></div>
       <div><label>Repetir contraseña</label><br><input name="password2" type="password"></div>
