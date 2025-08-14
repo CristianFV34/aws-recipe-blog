@@ -1,3 +1,4 @@
+require('dotenv').config();
 const express = require('express');
 const session = require('express-session');
 const DynamoDBStore = require('connect-dynamodb')({ session });
@@ -29,20 +30,23 @@ app.use(session({
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
+app.use((req, res, next) => {
+    res.locals.currentUser = req.session.user || null; 
+    next();
+});
+
 // Rutas
 require('./routes/perfil')(app);   // Ruta de perfil
 require('./routes/registro')(app); // Ruta de registro
 require('./routes/login')(app);    // Ruta de login
 
 // Página principal
-app.get('/', (req, res) => {
-  res.render('index', { user: req.session.user });
-});
+app.get("/", (req, res) => res.render("index"));
 app.get('/destacados', (req, res) => res.render('destacados'));
 app.get('/comunidad', (req, res) => res.render('comunidad'));
 
 // Puerto
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+app.listen(PORT, '0.0.0.0', () => {
   console.log(`Servidor corriendo en puerto ${PORT}`);
 });
