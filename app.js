@@ -63,7 +63,7 @@ app.get('/comunidad', (req, res) => res.render('comunidad'));
 
 app.get('/register', (req, res) => res.render('register', { errors: null, form: {} }));
 
-/*app.post('/register', async (req, res) => {
+app.post('/register', async (req, res) => {
   const { username, password, email } = req.body;
   const passwordHash = await bcrypt.hash(password, 10);
 
@@ -88,44 +88,6 @@ app.get('/register', (req, res) => res.render('register', { errors: null, form: 
       console.error(err);
       res.status(500).send('Error al registrar usuario');
     }
-  }
-});*/
-app.post('/register', async (req, res) => {
-  const { username, password, email } = req.body;
-
-  try {
-    // 1️⃣ Verificamos que llegan datos
-    console.log("Datos recibidos:", { username, email });
-
-    if (!username || !password || !email) {
-      return res.status(400).send("Faltan campos obligatorios");
-    }
-
-    // 2️⃣ Hash de la contraseña
-    const passwordHash = await bcrypt.hash(password, 10);
-
-    // 3️⃣ Preparamos datos para Dynamo
-    const params = {
-      TableName: 'Usuarios',
-      Item: {
-        username,
-        email,
-        passwordHash,
-        foto: 'images/user-3296.png'
-      }
-    };
-
-    console.log("Guardando en DynamoDB con params:", params);
-
-    // 4️⃣ Guardar en Dynamo
-    await dynamodb.put(params).promise();
-
-    console.log("Usuario guardado correctamente");
-    res.send('Usuario registrado con éxito');
-
-  } catch (err) {
-    console.error("❌ Error al registrar:", err);
-    res.status(500).send(`Error al registrar usuario: ${err.message}`);
   }
 });
 
@@ -166,7 +128,7 @@ app.post('/logout', (req, res) => {
 });
 
 app.get('/perfil', ensureAuth, async (req, res) => {
-  const getParams = { TableName: 'Usuarios', Key: { username: req.session.user.username } };
+  const getParams = { TableName: 'Usuarios', Key: { username: req.session.user.email } };
   const { Item: user } = await dynamodb.get(getParams).promise();
   if (!user) {
     return res.render('perfil', { user: null, errors: ['Usuario no encontrado'], success: null });
@@ -176,12 +138,12 @@ app.get('/perfil', ensureAuth, async (req, res) => {
 
 app.post('/perfil', ensureAuth, upload.single('foto'), async (req, res) => {
   const { oldPassword, newPassword, newPassword2 } = req.body;
-  const username = req.session.user.username;
+  const email = req.session.user.email;
   let errors = [];
   let success = null;
 
   // Obtener usuario
-  const getParams = { TableName: 'Usuarios', Key: { username } };
+  const getParams = { TableName: 'Usuarios', Key: { email } };
   const { Item: user } = await dynamodb.get(getParams).promise();
 
   // Cambiar contraseña
@@ -206,7 +168,7 @@ app.post('/perfil', ensureAuth, upload.single('foto'), async (req, res) => {
   }
 
   // Guardar cambios en DynamoDB
-  await dynamodb.put({ TableName: 'Usuarios', Item: user }).promise();
+  await dynamodb.update({ TableName: 'Usuarios', Item: user }).promise();
 
   res.render('perfil', { user, errors, success });
 });
