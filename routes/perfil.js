@@ -13,7 +13,7 @@ const ensureAuth = (req, res, next) => {
 
 module.exports = (app) => {
   const { GetCommand } = require('@aws-sdk/lib-dynamodb');
-  
+
   app.post('/perfil', ensureAuth, upload.single('foto'), async (req, res) => {
     const { oldPassword, newPassword, newPassword2 } = req.body;
     const email = req.session.user.email;
@@ -55,7 +55,10 @@ module.exports = (app) => {
       // 4. Guardar cambios en DynamoDB
       await dynamodb.send(new UpdateCommand({
         TableName: 'Usuarios',
-        Key: { email: user.email },
+        Key: { 
+          username: user.username,
+          email: user.email
+        },
         UpdateExpression: 'SET passwordHash = :ph, foto = :f',
         ExpressionAttributeValues: {
           ':ph': user.passwordHash,
