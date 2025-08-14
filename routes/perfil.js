@@ -12,6 +12,8 @@ const ensureAuth = (req, res, next) => {
 };
 
 module.exports = (app) => {
+  const { GetCommand } = require('@aws-sdk/lib-dynamodb');
+  
   app.post('/perfil', ensureAuth, upload.single('foto'), async (req, res) => {
     const { oldPassword, newPassword, newPassword2 } = req.body;
     const email = req.session.user.email;
@@ -72,13 +74,24 @@ module.exports = (app) => {
   });
 
   app.get('/perfil', ensureAuth, async (req, res) => {
-    const getParams = { TableName: 'Usuarios', Key: { username: req.session.user.username,
-      email: req.session.user.email
-    } };
-    const { Item: user } = await dynamodb.get(getParams).promise();
-    if (!user) {
-      return res.render('perfil', { user: null, errors: ['Usuario no encontrado'], success: null });
+    try {
+      const { Item: user } = await dynamodb.send(new GetCommand({
+        TableName: 'Usuarios',
+        Key: { 
+          username: req.session.user.username,
+          email: req.session.user.email
+        }
+      }));
+
+      if (!user) {
+        return res.render('perfil', { user: null, errors: ['Usuario no encontrado'], success: null });
+      }
+
+      res.render('perfil', { user, errors: [], success: null });
+
+    } catch (err) {
+      console.error('Error obteniendo perfil:', err);
+      res.render('perfil', { user: null, errors: ['Error al cargar el perfil'], success: null });
     }
-    res.render('perfil', { user, errors: [], success: null });
-    })
+  });
 };
