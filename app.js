@@ -63,7 +63,7 @@ app.get('/comunidad', (req, res) => res.render('comunidad'));
 
 app.get('/register', (req, res) => res.render('register', { errors: null, form: {} }));
 
-app.post('/register', async (req, res) => {
+/*app.post('/register', async (req, res) => {
   const { username, password, email } = req.body;
   const passwordHash = await bcrypt.hash(password, 10);
 
@@ -88,6 +88,44 @@ app.post('/register', async (req, res) => {
       console.error(err);
       res.status(500).send('Error al registrar usuario');
     }
+  }
+});*/
+app.post('/register', async (req, res) => {
+  const { username, password, email } = req.body;
+
+  try {
+    // 1️⃣ Verificamos que llegan datos
+    console.log("Datos recibidos:", { username, email });
+
+    if (!username || !password || !email) {
+      return res.status(400).send("Faltan campos obligatorios");
+    }
+
+    // 2️⃣ Hash de la contraseña
+    const passwordHash = await bcrypt.hash(password, 10);
+
+    // 3️⃣ Preparamos datos para Dynamo
+    const params = {
+      TableName: 'Usuarios',
+      Item: {
+        username,
+        email,
+        passwordHash,
+        foto: 'images/user-3296.png'
+      }
+    };
+
+    console.log("Guardando en DynamoDB con params:", params);
+
+    // 4️⃣ Guardar en Dynamo
+    await dynamodb.put(params).promise();
+
+    console.log("Usuario guardado correctamente");
+    res.send('Usuario registrado con éxito');
+
+  } catch (err) {
+    console.error("❌ Error al registrar:", err);
+    res.status(500).send(`Error al registrar usuario: ${err.message}`);
   }
 });
 
