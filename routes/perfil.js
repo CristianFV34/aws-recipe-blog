@@ -17,6 +17,7 @@ module.exports = (app) => {
   app.post('/perfil', ensureAuth, upload.single('foto'), async (req, res) => {
     const { oldPassword, newPassword, newPassword2 } = req.body;
     const email = req.session.user.email;
+    const username = req.session.user.username;
     let errors = [];
     let success = null;
 
@@ -24,7 +25,7 @@ module.exports = (app) => {
       // 1. Obtener usuario
       const { Item: user } = await dynamodb.send(new GetCommand({
         TableName: 'Usuarios',
-        Key: { email }
+        Key: { email, username }
       }));
 
       if (!user) {
