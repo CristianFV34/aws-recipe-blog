@@ -23,7 +23,7 @@ module.exports = (app) => {
 
         try {
             await dynamodb.send(new PutCommand(params));
-            res.send('Usuario registrado con éxito');
+            res.redirect('/');
         } catch (err) {
             if (err.name === 'ConditionalCheckFailedException') {
                 res.status(400).send('El nombre de usuario ya existe');
