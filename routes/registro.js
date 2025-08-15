@@ -18,7 +18,7 @@ module.exports = (app) => {
                 passwordHash,
                 foto: 'images/user-3296.png'
             },
-            ConditionExpression: 'attribute_not_exists(username)'
+            ConditionExpression: 'attribute_not_exists(email)'
         };
 
         try {
