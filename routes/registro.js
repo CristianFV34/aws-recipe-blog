@@ -23,6 +23,11 @@ module.exports = (app) => {
 
         try {
             await dynamodb.send(new PutCommand(params));
+            req.session.user = {
+                username,
+                email,
+                foto: 'images/user-3296.png'
+            };
             res.redirect('/');
         } catch (err) {
             if (err.name === 'ConditionalCheckFailedException') {
