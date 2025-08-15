@@ -11,13 +11,12 @@ module.exports = (app) => {
 
         const params = {
             TableName: 'Usuarios',
-            IndexName: 'email-index', // Asegúrate de que el índice exista en DynamoDB
+            IndexName: 'email-index',
             KeyConditionExpression: 'email = :e',
             ExpressionAttributeValues: { ':e': email }
         };
 
         try {
-            // En AWS SDK v3 usamos send(new QueryCommand())
             const data = await dynamodb.send(new QueryCommand(params));
 
             if (!data.Items || data.Items.length === 0) {

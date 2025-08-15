@@ -36,11 +36,11 @@ app.use((req, res, next) => {
 });
 
 // Rutas
-require('./routes/perfil')(app);   // Ruta de perfil
-require('./routes/registro')(app); // Ruta de registro
-require('./routes/login')(app);    // Ruta de login
+require('./routes/perfil')(app);
+require('./routes/registro')(app);
+require('./routes/login')(app);
 
-// Página principal
+// Páginas principales
 app.get("/", (req, res) => res.render("index"));
 app.get('/destacados', (req, res) => res.render('destacados'));
 app.get('/comunidad', (req, res) => res.render('comunidad'));

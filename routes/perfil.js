@@ -3,7 +3,6 @@ const { GetCommand, UpdateCommand } = require('@aws-sdk/lib-dynamodb');
 const { dynamodb } = require('./aws-config');
 const upload = require('./upload');
 
-// Asegúrate de tener tu middleware de autenticación
 const ensureAuth = (req, res, next) => {
   if (!req.session.user) {
     return res.redirect('/login');
