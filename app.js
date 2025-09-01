@@ -4,8 +4,12 @@ const session = require('express-session');
 const DynamoDBStore = require('connect-dynamodb')({ session });
 const path = require('path');
 const fs = require('fs');
+const AWS = require('aws-sdk');
 
-const app = express();
+// ==========================
+// CloudWatch
+// ==========================
+const cloudwatch = new AWS.CloudWatch({ region: process.env.AWS_REGION });
 
 // ==========================
 // Seguimiento de usuarios activos
@@ -14,6 +18,13 @@ let activeUsers = {
   loggedIn: new Set(),   // Usuarios con sesión
   guests: new Set()      // Invitados sin sesión
 };
+
+const app = express();
+
+// Middleware base
+app.use(express.urlencoded({ extended: true }));
+app.use(express.json());
+app.use(express.static(path.join(__dirname, 'public')));
 
 // Sesiones en DynamoDB
 app.use(session({
@@ -30,9 +41,10 @@ app.use(session({
   saveUninitialized: false
 }));
 
+// Middleware para contar usuarios activos
 app.use((req, res, next) => {
-  const ip = req.ip || req.connection.remoteAddress; // identificador básico
-  const user = req.session.user ? req.session.user.email : null;
+  const ip = req.ip || req.connection.remoteAddress;
+  const user = req.session?.user ? req.session.user.email : null;
 
   if (user) {
     activeUsers.loggedIn.add(user);
@@ -40,7 +52,6 @@ app.use((req, res, next) => {
     activeUsers.guests.add(ip);
   }
 
-  // Cuando la respuesta termina, quitamos al usuario
   res.on('finish', () => {
     if (user) {
       activeUsers.loggedIn.delete(user);
@@ -52,13 +63,38 @@ app.use((req, res, next) => {
   next();
 });
 
-function logActiveUsers() {
-  const msg = `Usuarios activos -> Logueados: ${activeUsers.loggedIn.size}, Invitados: ${activeUsers.guests.size}`;
-  console.log(msg);
+// ==========================
+// Enviar métricas a CloudWatch
+// ==========================
+function publishActiveUsers() {
+  const loggedIn = activeUsers.loggedIn.size;
+  const guests = activeUsers.guests.size;
+
+  cloudwatch.putMetricData({
+    Namespace: 'MyApp/Metrics', // nombre del grupo de métricas
+    MetricData: [
+      {
+        MetricName: 'LoggedInUsers',
+        Value: loggedIn,
+        Unit: 'Count'
+      },
+      {
+        MetricName: 'GuestUsers',
+        Value: guests,
+        Unit: 'Count'
+      }
+    ]
+  }, (err, data) => {
+    if (err) {
+      console.error("Error enviando métricas:", err);
+    } else {
+      console.log(`Métricas enviadas: Logueados=${loggedIn}, Invitados=${guests}`);
+    }
+  });
 }
 
-// cada 1 minuto registramos la info en el log
-setInterval(logActiveUsers, 60 * 1000);
+// cada 1 minuto enviamos métricas
+setInterval(publishActiveUsers, 60 * 1000);
 
 // ==========================
 // Configuración de logging
@@ -78,18 +114,13 @@ console.error = function (message) {
 };
 // ==========================
 
-// Middleware base
-app.use(express.urlencoded({ extended: true }));
-app.use(express.json());
-app.use(express.static(path.join(__dirname, 'public')));
-
 // Motor de plantillas (ej: EJS)
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
 app.use((req, res, next) => {
-    res.locals.currentUser = req.session.user || null; 
-    next();
+  res.locals.currentUser = req.session.user || null; 
+  next();
 });
 
 // Rutas
