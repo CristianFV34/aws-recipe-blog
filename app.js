@@ -3,6 +3,25 @@ const express = require('express');
 const session = require('express-session');
 const DynamoDBStore = require('connect-dynamodb')({ session });
 const path = require('path');
+const fs = require('fs');
+
+// ==========================
+// Configuración de logging
+// ==========================
+const logStream = fs.createWriteStream('/var/log/nodeapp.log', { flags: 'a' });
+
+console.log = function (message) {
+  const msg = new Date().toISOString() + ' [INFO] ' + message + '\n';
+  logStream.write(msg);
+  process.stdout.write(msg);
+};
+
+console.error = function (message) {
+  const msg = new Date().toISOString() + ' [ERROR] ' + message + '\n';
+  logStream.write(msg);
+  process.stderr.write(msg);
+};
+// ==========================
 
 const app = express();
 
