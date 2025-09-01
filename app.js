@@ -15,6 +15,21 @@ let activeUsers = {
   guests: new Set()      // Invitados sin sesión
 };
 
+// Sesiones en DynamoDB
+app.use(session({
+  store: new DynamoDBStore({
+    table: 'sessions',
+    AWSConfigJSON: {
+      region: process.env.AWS_REGION,
+      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+    }
+  }),
+  secret: process.env.SESSION_SECRET || 'mi-secreto',
+  resave: false,
+  saveUninitialized: false
+}));
+
 app.use((req, res, next) => {
   const ip = req.ip || req.connection.remoteAddress; // identificador básico
   const user = req.session.user ? req.session.user.email : null;
@@ -67,21 +82,6 @@ console.error = function (message) {
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
-
-// Sesiones en DynamoDB
-app.use(session({
-  store: new DynamoDBStore({
-    table: 'sessions',
-    AWSConfigJSON: {
-      region: process.env.AWS_REGION,
-      accessKeyId: process.env.AWS_ACCESS_KEY_ID,
-      secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
-    }
-  }),
-  secret: process.env.SESSION_SECRET || 'mi-secreto',
-  resave: false,
-  saveUninitialized: false
-}));
 
 // Motor de plantillas (ej: EJS)
 app.set('view engine', 'ejs');
