@@ -5,6 +5,46 @@ const DynamoDBStore = require('connect-dynamodb')({ session });
 const path = require('path');
 const fs = require('fs');
 
+const app = express();
+
+// ==========================
+// Seguimiento de usuarios activos
+// ==========================
+let activeUsers = {
+  loggedIn: new Set(),   // Usuarios con sesión
+  guests: new Set()      // Invitados sin sesión
+};
+
+app.use((req, res, next) => {
+  const ip = req.ip || req.connection.remoteAddress; // identificador básico
+  const user = req.session.user ? req.session.user.email : null;
+
+  if (user) {
+    activeUsers.loggedIn.add(user);
+  } else {
+    activeUsers.guests.add(ip);
+  }
+
+  // Cuando la respuesta termina, quitamos al usuario
+  res.on('finish', () => {
+    if (user) {
+      activeUsers.loggedIn.delete(user);
+    } else {
+      activeUsers.guests.delete(ip);
+    }
+  });
+
+  next();
+});
+
+function logActiveUsers() {
+  const msg = `Usuarios activos -> Logueados: ${activeUsers.loggedIn.size}, Invitados: ${activeUsers.guests.size}`;
+  console.log(msg);
+}
+
+// cada 1 minuto registramos la info en el log
+setInterval(logActiveUsers, 60 * 1000);
+
 // ==========================
 // Configuración de logging
 // ==========================
@@ -22,8 +62,6 @@ console.error = function (message) {
   process.stderr.write(msg);
 };
 // ==========================
-
-const app = express();
 
 // Middleware base
 app.use(express.urlencoded({ extended: true }));
