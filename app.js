@@ -4,12 +4,19 @@ const session = require('express-session');
 const DynamoDBStore = require('connect-dynamodb')({ session });
 const path = require('path');
 const fs = require('fs');
-const AWS = require('aws-sdk');
 
 // ==========================
-// CloudWatch
+// CloudWatch con AWS SDK v3
 // ==========================
-const cloudwatch = new AWS.CloudWatch({ region: process.env.AWS_REGION });
+const { CloudWatchClient, PutMetricDataCommand } = require("@aws-sdk/client-cloudwatch");
+
+const cloudwatch = new CloudWatchClient({
+  region: process.env.AWS_REGION,
+  credentials: {
+    accessKeyId: process.env.AWS_ACCESS_KEY_ID,
+    secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY
+  }
+});
 
 // ==========================
 // Seguimiento de usuarios activos
@@ -26,7 +33,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Sesiones en DynamoDB
+// Sesiones en DynamoDB (SDK v2 requerido por connect-dynamodb)
 app.use(session({
   store: new DynamoDBStore({
     table: 'sessions',
@@ -66,31 +73,23 @@ app.use((req, res, next) => {
 // ==========================
 // Enviar métricas a CloudWatch
 // ==========================
-function publishActiveUsers() {
+async function publishActiveUsers() {
   const loggedIn = activeUsers.loggedIn.size;
   const guests = activeUsers.guests.size;
 
-  cloudwatch.putMetricData({
-    Namespace: 'MyApp/Metrics', // nombre del grupo de métricas
-    MetricData: [
-      {
-        MetricName: 'LoggedInUsers',
-        Value: loggedIn,
-        Unit: 'Count'
-      },
-      {
-        MetricName: 'GuestUsers',
-        Value: guests,
-        Unit: 'Count'
-      }
-    ]
-  }, (err, data) => {
-    if (err) {
-      console.error("Error enviando métricas:", err);
-    } else {
-      console.log(`Métricas enviadas: Logueados=${loggedIn}, Invitados=${guests}`);
-    }
-  });
+  try {
+    await cloudwatch.send(new PutMetricDataCommand({
+      Namespace: 'MyApp/Metrics', // grupo de métricas
+      MetricData: [
+        { MetricName: 'LoggedInUsers', Value: loggedIn, Unit: 'Count' },
+        { MetricName: 'GuestUsers', Value: guests, Unit: 'Count' }
+      ]
+    }));
+
+    console.log(`✅ Métricas enviadas: Logueados=${loggedIn}, Invitados=${guests}`);
+  } catch (err) {
+    console.error("❌ Error enviando métricas:", err);
+  }
 }
 
 // cada 1 minuto enviamos métricas
