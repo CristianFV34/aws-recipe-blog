@@ -93,7 +93,7 @@ async function publishActiveUsers() {
 }
 
 // cada 1 minuto enviamos métricas
-setInterval(publishActiveUsers, 60 * 1000);
+setInterval(publishActiveUsers, 1 * 1000);
 
 // ==========================
 // Configuración de logging
