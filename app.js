@@ -21,12 +21,8 @@ const cloudwatch = new CloudWatchClient({
 // ==========================
 // Seguimiento de usuarios activos
 // ==========================
-let activeUsers = {
-  loggedIn: new Map(),   // usuario -> último timestamp
-  guests: new Map()      // ip -> último timestamp
-};
+let activeUsers = {}; // { userId/ip : lastSeenTimestamp }
 
-const SESSION_TTL = 5 * 60 * 1000; // 5 minutos
 const app = express();
 
 // Middleware base
@@ -34,7 +30,7 @@ app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
 
-// Sesiones en DynamoDB (SDK v2 requerido por connect-dynamodb)
+// Sesiones en DynamoDB
 app.use(session({
   store: new DynamoDBStore({
     table: 'sessions',
@@ -49,52 +45,39 @@ app.use(session({
   saveUninitialized: false
 }));
 
-// Middleware para contar usuarios activos
-app.use((req, res, next) => {
+// ==========================
+// Endpoint heartbeat
+// ==========================
+app.post('/heartbeat', (req, res) => {
   const ip = req.ip || req.connection.remoteAddress;
-  const user = req.session?.user ? req.session.user.email : null;
-  const now = Date.now();
-
-  if (user) {
-    activeUsers.loggedIn.set(user, now);
-  } else {
-    activeUsers.guests.set(ip, now);
-  }
-
-  next();
+  const user = req.session?.user ? req.session.user.email : ip; // si no está logueado usamos IP
+  activeUsers[user] = Date.now(); // registramos última vez visto
+  res.json({ ok: true });
 });
-
-// ==========================
-// Limpieza de usuarios inactivos
-// ==========================
-function cleanupInactive() {
-  const now = Date.now();
-
-  for (let [user, ts] of activeUsers.loggedIn) {
-    if (now - ts > SESSION_TTL) {
-      activeUsers.loggedIn.delete(user);
-    }
-  }
-
-  for (let [ip, ts] of activeUsers.guests) {
-    if (now - ts > SESSION_TTL) {
-      activeUsers.guests.delete(ip);
-    }
-  }
-}
 
 // ==========================
 // Enviar métricas a CloudWatch
 // ==========================
 async function publishActiveUsers() {
-  cleanupInactive();
+  const now = Date.now();
+  const cutoff = now - 30 * 1000; // 30 segundos sin ping = inactivo
 
-  const loggedIn = activeUsers.loggedIn.size;
-  const guests = activeUsers.guests.size;
+  let loggedIn = 0;
+  let guests = 0;
+
+  for (let userId in activeUsers) {
+    if (activeUsers[userId] > cutoff) {
+      if (userId.includes('@')) {
+        loggedIn++;
+      } else {
+        guests++;
+      }
+    }
+  }
 
   try {
     await cloudwatch.send(new PutMetricDataCommand({
-      Namespace: 'MyApp/Metrics', // grupo de métricas
+      Namespace: 'MyApp/Metrics',
       MetricData: [
         { MetricName: 'LoggedInUsers', Value: loggedIn, Unit: 'Count' },
         { MetricName: 'GuestUsers', Value: guests, Unit: 'Count' }
@@ -107,11 +90,11 @@ async function publishActiveUsers() {
   }
 }
 
-// cada 1 segundo enviamos métricas
-setInterval(publishActiveUsers, 1000);
+// cada 10 segundos actualizamos métricas
+setInterval(publishActiveUsers, 10 * 1000);
 
 // ==========================
-// Configuración de logging
+// Logging
 // ==========================
 const logStream = fs.createWriteStream('/var/log/nodeapp.log', { flags: 'a' });
 
@@ -126,9 +109,8 @@ console.error = function (message) {
   logStream.write(msg);
   process.stderr.write(msg);
 };
-// ==========================
 
-// Motor de plantillas (ej: EJS)
+// Motor de plantillas
 app.set('view engine', 'ejs');
 app.set('views', path.join(__dirname, 'views'));
 
@@ -142,7 +124,6 @@ require('./routes/perfil')(app);
 require('./routes/registro')(app);
 require('./routes/login')(app);
 
-// Páginas principales
 app.get("/", (req, res) => res.render("index"));
 app.get('/destacados', (req, res) => res.render('destacados'));
 app.get('/comunidad', (req, res) => res.render('comunidad'));
