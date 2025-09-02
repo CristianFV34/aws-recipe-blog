@@ -22,10 +22,11 @@ const cloudwatch = new CloudWatchClient({
 // Seguimiento de usuarios activos
 // ==========================
 let activeUsers = {
-  loggedIn: new Set(),   // Usuarios con sesión
-  guests: new Set()      // Invitados sin sesión
+  loggedIn: new Map(),   // usuario -> último timestamp
+  guests: new Map()      // ip -> último timestamp
 };
 
+const SESSION_TTL = 5 * 60 * 1000; // 5 minutos
 const app = express();
 
 // Middleware base
@@ -52,28 +53,42 @@ app.use(session({
 app.use((req, res, next) => {
   const ip = req.ip || req.connection.remoteAddress;
   const user = req.session?.user ? req.session.user.email : null;
+  const now = Date.now();
 
   if (user) {
-    activeUsers.loggedIn.add(user);
+    activeUsers.loggedIn.set(user, now);
   } else {
-    activeUsers.guests.add(ip);
+    activeUsers.guests.set(ip, now);
   }
-
-  res.on('finish', () => {
-    if (user) {
-      activeUsers.loggedIn.delete(user);
-    } else {
-      activeUsers.guests.delete(ip);
-    }
-  });
 
   next();
 });
 
 // ==========================
+// Limpieza de usuarios inactivos
+// ==========================
+function cleanupInactive() {
+  const now = Date.now();
+
+  for (let [user, ts] of activeUsers.loggedIn) {
+    if (now - ts > SESSION_TTL) {
+      activeUsers.loggedIn.delete(user);
+    }
+  }
+
+  for (let [ip, ts] of activeUsers.guests) {
+    if (now - ts > SESSION_TTL) {
+      activeUsers.guests.delete(ip);
+    }
+  }
+}
+
+// ==========================
 // Enviar métricas a CloudWatch
 // ==========================
 async function publishActiveUsers() {
+  cleanupInactive();
+
   const loggedIn = activeUsers.loggedIn.size;
   const guests = activeUsers.guests.size;
 
@@ -92,8 +107,8 @@ async function publishActiveUsers() {
   }
 }
 
-// cada 1 minuto enviamos métricas
-setInterval(publishActiveUsers, 1 * 1000);
+// cada 1 segundo enviamos métricas
+setInterval(publishActiveUsers, 1000);
 
 // ==========================
 // Configuración de logging
