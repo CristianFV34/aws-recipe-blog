@@ -56,6 +56,29 @@ app.post('/heartbeat', (req, res) => {
 });
 
 // ==========================
+// Endpoint metrics
+// ==========================
+app.get('/metrics', (req, res) => {
+  const now = Date.now();
+  const cutoff = now - 30 * 1000; // 30 seg sin ping = inactivo
+
+  let loggedIn = 0;
+  let guests = 0;
+
+  for (let userId in activeUsers) {
+    if (activeUsers[userId] > cutoff) {
+      if (userId.includes('@')) {
+        loggedIn++;
+      } else {
+        guests++;
+      }
+    }
+  }
+
+  res.json({ loggedIn, guests, timestamp: new Date().toISOString() });
+});
+
+// ==========================
 // Enviar métricas a CloudWatch
 // ==========================
 async function publishActiveUsers() {
