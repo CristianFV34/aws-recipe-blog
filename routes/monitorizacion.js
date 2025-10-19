@@ -24,7 +24,7 @@ async function guardarEnS3(buffer, nombreArchivo) {
 // Exporta la función que registra la ruta
 module.exports = (app) => {
   app.get('/monitorizacion', (req, res) => {
-    res.render('monitorizacion');
+    res.render('panel');
   });
 
   // (Opcional) podrías exponer un endpoint POST para subir el video
