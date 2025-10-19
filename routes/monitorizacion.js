@@ -1,4 +1,5 @@
 const { S3Client, PutObjectCommand } = require("@aws-sdk/client-s3");
+const express = require('express');
 
 // Inicializa el cliente S3 una sola vez (no dentro de la ruta)
 const s3 = new S3Client({
