@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <title>Cámara en Vivo</title>
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <%- include("partials/header") %>
+
+  <main style="display:flex;justify-content:center;align-items:center;height:80vh;background:#f9f9f9;">
+    <div style="position:relative;max-width:800px;width:100%;border-radius:8px;overflow:hidden;box-shadow:0 0 10px rgba(0,0,0,0.2);">
+      <!-- Contenedor de video -->
+      <video id="videoStream" autoplay playsinline controls style="width:100%;height:auto;display:block;background:#000;"></video>
+    </div>
+  </main>
+
+  <script>
+    // Solicitar acceso a la cámara del dispositivo
+    async function startCamera() {
+      try {
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
+        const video = document.getElementById('videoStream');
+        video.srcObject = stream;
+      } catch (err) {
+        console.error('Error al acceder a la cámara:', err);
+        alert('No se pudo acceder a la cámara. Verifica los permisos del navegador.');
+      }
+    }
+
+    startCamera();
+  </script>
+</body>
+</html>
