@@ -2,31 +2,91 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <title>Cámara en Vivo</title>
+  <title>Monitorización en Tiempo Real</title>
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
   <%- include("partials/header") %>
 
-  <main style="display:flex;justify-content:center;align-items:center;height:80vh;background:#f9f9f9;">
-    <div style="position:relative;max-width:800px;width:100%;border-radius:8px;overflow:hidden;box-shadow:0 0 10px rgba(0,0,0,0.2);">
-      <!-- Contenedor de video -->
-      <video id="videoStream" autoplay playsinline controls style="width:100%;height:auto;display:block;background:#000;"></video>
+  <main style="display:flex;flex-direction:column;align-items:center;justify-content:center;height:80vh;background:#f9f9f9;">
+    <div style="position:relative;max-width:900px;width:100%;border-radius:8px;overflow:hidden;box-shadow:0 0 10px rgba(0,0,0,0.2);">
+      <video id="preview" autoplay playsinline muted style="width:100%;height:auto;background:#000;"></video>
     </div>
+
+    <div style="margin-top:20px;">
+      <button id="startBtn" style="padding:10px 20px;">🎥 Iniciar Grabación</button>
+      <button id="stopBtn" style="padding:10px 20px;display:none;">⏹️ Detener y Subir</button>
+    </div>
+
+    <div id="status" style="margin-top:15px;color:#333;font-weight:bold;"></div>
   </main>
 
   <script>
-    // Solicitar acceso a la cámara del dispositivo
+    const video = document.getElementById('preview');
+    const startBtn = document.getElementById('startBtn');
+    const stopBtn = document.getElementById('stopBtn');
+    const statusEl = document.getElementById('status');
+
+    let mediaRecorder;
+    let chunks = [];
+
     async function startCamera() {
       try {
-        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
-        const video = document.getElementById('videoStream');
+        const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
         video.srcObject = stream;
+        mediaRecorder = new MediaRecorder(stream, { mimeType: 'video/webm;codecs=vp9' });
+
+        mediaRecorder.ondataavailable = (e) => {
+          if (e.data.size > 0) chunks.push(e.data);
+        };
+
+        mediaRecorder.onstop = async () => {
+          const blob = new Blob(chunks, { type: 'video/mp4' });
+          chunks = [];
+
+          statusEl.textContent = "⏫ Subiendo video a S3...";
+
+          try {
+            const res = await fetch('/subir-video', {
+              method: 'POST',
+              headers: { 'Content-Type': 'video/mp4' },
+              body: blob
+            });
+
+            const data = await res.json();
+            if (data.ok) {
+              statusEl.textContent = "✅ Video subido correctamente a S3: " + data.nombreArchivo;
+            } else {
+              statusEl.textContent = "❌ Error al subir video: " + (data.error || 'desconocido');
+            }
+          } catch (err) {
+            console.error(err);
+            statusEl.textContent = "⚠️ Error al subir video al servidor.";
+          }
+        };
       } catch (err) {
-        console.error('Error al acceder a la cámara:', err);
-        alert('No se pudo acceder a la cámara. Verifica los permisos del navegador.');
+        console.error("Error al acceder a la cámara:", err);
+        statusEl.textContent = "⚠️ No se pudo acceder a la cámara.";
       }
     }
+
+    startBtn.addEventListener('click', () => {
+      if (!mediaRecorder) {
+        alert("La cámara no está lista aún.");
+        return;
+      }
+      mediaRecorder.start();
+      statusEl.textContent = "🎬 Grabando...";
+      startBtn.style.display = "none";
+      stopBtn.style.display = "inline-block";
+    });
+
+    stopBtn.addEventListener('click', () => {
+      mediaRecorder.stop();
+      statusEl.textContent = "📦 Procesando video...";
+      stopBtn.style.display = "none";
+      startBtn.style.display = "inline-block";
+    });
 
     startCamera();
   </script>

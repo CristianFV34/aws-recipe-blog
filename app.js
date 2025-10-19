@@ -4,6 +4,7 @@ const session = require('express-session');
 const DynamoDBStore = require('connect-dynamodb')({ session });
 const path = require('path');
 const fs = require('fs');
+const { Server } = require('socket.io');
 
 // ==========================
 // CloudWatch con AWS SDK v3
@@ -24,6 +25,8 @@ const cloudwatch = new CloudWatchClient({
 let activeUsers = {}; // { userId/ip : lastSeenTimestamp }
 
 const app = express();
+const server = http.createServer(app);
+const io = new Server(server);
 
 // Middleware base
 app.use(express.urlencoded({ extended: true }));
@@ -117,6 +120,20 @@ async function publishActiveUsers() {
 setInterval(publishActiveUsers, 10 * 1000);
 
 // ==========================
+// WEBSOCKETS DE VIDEO
+// ==========================
+io.on('connection', (socket) => {
+  console.log('📡 Nuevo cliente conectado');
+
+  // Reenviar datos binarios (frames) a todos los demás
+  socket.on('video-stream', (data) => {
+    socket.broadcast.emit('video-stream', data);
+  });
+
+  socket.on('disconnect', () => console.log('❌ Cliente desconectado'));
+});
+
+// ==========================
 // Logging
 // ==========================
 const logStream = fs.createWriteStream('/var/log/nodeapp.log', { flags: 'a' });
@@ -146,6 +163,7 @@ app.use((req, res, next) => {
 require('./routes/perfil')(app);
 require('./routes/registro')(app);
 require('./routes/login')(app);
+require('./routes/monitorizacion')(app);
 
 app.get("/", (req, res) => res.render("index"));
 app.get('/destacados', (req, res) => res.render('destacados'));
@@ -153,6 +171,6 @@ app.get('/comunidad', (req, res) => res.render('comunidad'));
 
 // Puerto
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, '0.0.0.0', () => {
-  console.log(`Servidor corriendo en puerto ${PORT}`);
+server.listen(PORT, '0.0.0.0', () => {
+  console.log(`Servidor en puerto ${PORT}`);
 });
